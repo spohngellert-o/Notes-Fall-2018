@@ -28,9 +28,12 @@ Cons: Page fragmentation, WAL required, I/O overhead for blocks, requires lockin
 ##### Example
 
 Max size: 2, starting tree:
-	[3] -> [1 2][4]
+	
+	[3] &rarr; [1 2][4]
+
 Now, insert 0 and it becomes the following:
-[1 3]->[0][2][4]
+	
+	[1 3] &rarr; [0][2][4]
 
 ### Write ahead logging
 
@@ -109,5 +112,92 @@ Early KV Store
 
 ### R-Trees
 
+Tree data structure for indexing multi-dimensional data.
+
+### Data warehousing
+
+* Provides separate resource for data analytics
+* Data can be manipulated without impacting users
+
+Data Marts - Warehouse subdivided into small marts that can be used by the appropriate people.
 
 
+### OLTP vs OLAP
+
+**OLTP**
+
+* Focus is fast querying speed, maintaining data integrity
+* Primary user - enduser/customer
+* Data is latest state
+
+**OLAP**
+
+* Focus is on getting large amounts of data/records
+* Bulk write as well
+* Primary user - internal anlayst
+* Data is the history of events
+* much larger in scale
+
+### Columnar Storage
+
+* Data is stored in column order on disk
+* Good for data aggregates on columns (makes it faster)
+
+
+## Section 2: KV Stores/Redis
+
+KV stores are designed to be simple, fast, and scalable
+
+#### Features
+
+* Consistency - Consistency only guaranteed on a single key. Distributed stores are ventually consistent.
+* Transactions - varies
+* Querying - By key, and usually only by key.
+* Data - Blob, text, json, xml, etc.
+* Scaling - Shard by key
+
+#### Use Cases
+
+* Storing session info - Everything about session stored with **one** put, retrieved with get. Makes it fast.
+* User Profiles, Preferences
+* Shopping cart data
+* Caching layer
+
+### Redis
+
+* In memory data structure store
+* Can be used as DB, cache, message broker
+* Super fassed as it is in-memory, unlike MongoDB
+* Supports clustering via Master-Slave
+* Doesn't handle complex data very well
+* Has support for snapshotting
+
+#### Master-Slave replication
+
+* Performance critical and some data loss is acceptable
+* Replicas do backups, Masters service requests
+
+### Redis vs Memcached
+
+* Memchached is another NoSQL kv store, stores in memory
+* Memcached uses a volatile cache: data is not persisted
+* Redis persists data in background
+
+### Datatypes in Redis
+
+#### Keys
+
+Usually strings, but can be any binary
+
+#### Values
+
+* Strings
+* Lists
+* Sets
+* Sorted Sets
+* Hashes
+* Bit arrays
+
+### Redis at Scale
+
+* As a cache, scaling up is easy. As a datastore, nodes must be in fixed places as you need key &rarr; node store.
