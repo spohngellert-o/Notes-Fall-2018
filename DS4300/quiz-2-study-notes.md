@@ -29,11 +29,11 @@ Cons: Page fragmentation, WAL required, I/O overhead for blocks, requires lockin
 
 Max size: 2, starting tree:
 	
-	[3] &rarr; [1 2][4]
+[3] &rarr; [1 2][4]
 
 Now, insert 0 and it becomes the following:
 	
-	[1 3] &rarr; [0][2][4]
+[1 3] &rarr; [0][2][4]
 
 ### Write ahead logging
 
@@ -69,7 +69,7 @@ Keys in memory, values on disk
 
 High performance reads and writes
 
-Use case - many operations across many different keys
+Use case - many operations acro1 many different keys
 
 All keys must fit in RAM
 
@@ -195,9 +195,125 @@ Usually strings, but can be any binary
 * Lists
 * Sets
 * Sorted Sets
-* Hashes
+* Hashes (String &rarr; String)
 * Bit arrays
 
 ### Redis at Scale
 
 * As a cache, scaling up is easy. As a datastore, nodes must be in fixed places as you need key &rarr; node store.
+* Sharding is popular for scaling.
+
+### Redis Security
+
+* Basically none
+* User sends auth command with password, but password is stored in plaintext
+
+### Redis vs Relational
+
+* In Redis, there aren't schemas, so data retrieval is controled at application layer.
+* It is very important to think up front about how data will be stored.
+* Targeted at explicit lookups/reads
+
+### Persistence Process
+
+1. Client sends write command to DB
+2. DB receives
+3. DB calls sys call to write
+4. OS transfers write buffer to disk controller (disk cache)
+5. Disc controller writes
+
+### Pools
+
+Multiple Redis servers running on the same machine using different ports
+
+Efficient memory usage, one cpu per server
+
+### Replication
+
+* Non blocking on slave side
+* Slaves are read-only 
+
+**Process**
+
+1. Master starts buffering new commands and saving db in background
+2. After saving, master transfers db to slave
+3. Slave saves files to disk and loads into memory
+4. Master sends all buffered commands to slave
+
+### Persistence
+
+RDB - redis database file, point in time snapshot. Good for backup and recovery, easy to use and compact. Limited to save points, not good if you want to minimize chance of data loss if Redis stops. Can be time consuming and make performance worse.
+
+AOF (Append Only File) - Main persistence option. Every operation is logged, log can be piped to another instance and DB can be reconstructed. More durable, single file with no corruptions. Automatically rewrites in bg if it gets too big. Takes longer to load into memory on server restart, bigger file, can be slower than rdb.
+
+
+### Levels of consistency
+
+Strict - Changes to data are atomic
+Sequential - Clients see changes in the order they were applied
+
+Causal - All causally related changes are observed in the same order by all clients
+
+Eventual - All updates will eventually prpogate through the system, and all replicas will be consistent
+
+Weak - no guarantees, changes may appear out of order.
+
+Read After Write - Users always see data that they submitted
+
+Monotonic Reads - After users have seen data, they shouldn't see earlier data
+
+Consistent Prefix Reads - Users see data in an order that makes sense
+
+### Tunable consistency
+
+If W + R > N, we get strict consistency where:
+* R = number of servers read
+* W = number of servers written to
+* N = number of servers
+
+If W + R <= N, we get eventual consistency
+
+### Replication methods
+
+
+Statement based - Send all statements to clients. Simple, but error prone due to functions with side effects like now()
+
+WAL - Send a log to the replicas. Leader and all followers must implement the same storage engine, makes upgrades difficult.
+
+Logical (row-based) Log - For RDBs, inserted rows, deleted rows, etc. Logical logs are decoupled from storage engine (any SQL will work)
+
+Trigger based - Changes are logged to a separate table whenever a trigger fires in response to an insert, update etc. Can be application specific but error prone.
+
+### Synchronous vs Async
+
+Sync - Leader waits for response from follower before giving response to client
+
+Async - Leader doesn't wait for confirmation 
+
+These two can be mixed
+
+### One leader based replication (master/slave)
+
+* Write to leader only
+* Leader sends replication stream to followers
+* clients read from anywhere
+
+
+### Multi Leader Replication
+
+* Each datacenter has a leader
+* Leaders communicate with each other
+* Pro: Greater tolerance of intra-datacenter networking problems
+* Con: Need to resolve conflicts. Ex - 2 devices edit the same thing connected to 2 data centers. How do we resolve if they do conflicting things?
+
+### Conflict handling strategies
+
+Avoidance - Require all writes for a particular user go through the sme datacenter.
+
+Convergence - Allow conflict, but converge on a common outcome. For example, use write timestamps and use the most recent write.
+
+### Leaderless replication
+
+* No leader
+* Writes to one or more replicas in any order
+* Essentially use W + R < N model
